@@ -24,6 +24,10 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Serverless v3
+        run: npm install -g serverless@3
+
+
       - name: Deploy with Serverless
         run: sls deploy --stage dev --region us-east-1
         env:
