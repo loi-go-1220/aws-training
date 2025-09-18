@@ -59,11 +59,11 @@ jobs:
         run: |
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "Deploying to dev (stage=dev)"
-            sls deploy --stage dev --region ${AWS_REGION}
+            sls deploy --stage dev --region $AWS_REGION
           elif [ "${{ github.ref }}" = "refs/heads/prod" ]; then
             echo "Deploying to prod (stage=prod)"
-            sls deploy --stage prod --region ${AWS_REGION}
+            sls deploy --stage prod --region $AWS_REGION
           else
             echo "Manual/other branch run - choose stage argument if desired"
-            sls deploy --stage dev --region ${AWS_REGION}
+            sls deploy --stage dev --region $AWS_REGION
           fi
