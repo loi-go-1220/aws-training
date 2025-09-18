@@ -14,6 +14,7 @@ provider:
         - dynamodb:GetItem
         - dynamodb:Scan
         - dynamodb:DeleteItem
+        - dynamodb:UpdateItem
       Resource:
         - arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}
 
@@ -38,6 +39,12 @@ functions:
       - httpApi:
           path: /items/{id}
           method: get
+  update:
+    handler: handler.update
+    events:
+      - httpApi:
+          path: /items/{id}
+          method: put
 
   delete:
     handler: handler.remove
