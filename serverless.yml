@@ -4,9 +4,10 @@ frameworkVersion: "3"
 provider:
   name: aws
   runtime: nodejs22.x
-  region: us-east-1
+  stage: ${opt:stage, dev}
+  region: ${opt:region, us-east-1}
   environment:
-    TABLE_NAME: ${self:service}-table-${sls:stage}
+    TABLE_NAME: ${self:service}-table-${self:provider.stage}
   iamRoleStatements:
     - Effect: Allow
       Action:

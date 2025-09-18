@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand",
+    "start": "sls offline"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +13,8 @@
   "dependencies": {
     "aws-sdk": "^2.1692.0",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "jest": "^30.1.3"
   }
 }
