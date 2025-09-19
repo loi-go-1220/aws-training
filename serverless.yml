@@ -18,41 +18,64 @@ provider:
         - dynamodb:UpdateItem
       Resource:
         - arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}
+  apiGateway:
+    restApiId: ${self:custom.restApiId, ''}
+    restApiRootResourceId: ${self:custom.restApiRootResourceId, ''}
+    binaryMediaTypes:
+      - '*/*'
+
+custom:
+  restApiId: ${self:custom.restApiId, ''}
+  restApiRootResourceId: ${self:custom.restApiRootResourceId, ''}
 
 functions:
   create:
     handler: handler.create
     events:
-      - httpApi:
+      - http:
           path: /items
           method: post
+          cors: true
 
   list:
     handler: handler.list
     events:
-      - httpApi:
+      - http:
           path: /items
           method: get
+          cors: true
 
   get:
     handler: handler.get
     events:
-      - httpApi:
+      - http:
           path: /items/{id}
           method: get
+          cors: true
+
   update:
     handler: handler.update
     events:
-      - httpApi:
+      - http:
           path: /items/{id}
           method: put
+          cors: true
 
   delete:
     handler: handler.remove
     events:
-      - httpApi:
+      - http:
           path: /items/{id}
           method: delete
+          cors: true
+
+  options:
+    handler: handler.options
+    events:
+      - http:
+          path: /{proxy+}
+          method: options
+          cors: true
 
 resources:
   Resources:
@@ -67,3 +90,67 @@ resources:
           - AttributeName: id
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        Tags:
+          - Key: Environment
+            Value: ${self:provider.stage}
+          - Key: Service
+            Value: ${self:service}
+
+    # CORS Configuration
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: RestApiApigw
+
+    GatewayResponseDefault5XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: RestApiApigw
+
+  Outputs:
+    RestApiId:
+      Value:
+        Ref: RestApiApigw
+      Export:
+        Name: ${self:service}-${self:provider.stage}-restApiId
+
+    RestApiRootResourceId:
+      Value:
+        Fn::GetAtt:
+          - RestApiApigw
+          - RootResourceId
+      Export:
+        Name: ${self:service}-${self:provider.stage}-restApiRootResourceId
+
+    ApiGatewayUrl:
+      Value:
+        Fn::Join:
+          - ''
+          - - 'https://'
+            - Ref: RestApiApigw
+            - '.execute-api.'
+            - ${aws:region}
+            - '.amazonaws.com/'
+            - ${self:provider.stage}
+      Export:
+        Name: ${self:service}-${self:provider.stage}-apiUrl
+
+    DynamoDbTableName:
+      Value:
+        Ref: ItemsTable
+      Export:
+        Name: ${self:service}-${self:provider.stage}-tableName

@@ -3,43 +3,79 @@ const { v4: uuidv4 } = require("uuid");
 const db = new AWS.DynamoDB.DocumentClient();
 const TABLE = process.env.TABLE_NAME;
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
+};
+
+// Helper function to create response with CORS headers
+const createResponse = (statusCode, body, headers = {}) => ({
+  statusCode,
+  headers: { ...corsHeaders, ...headers },
+  body: typeof body === 'string' ? body : JSON.stringify(body)
+});
+
 exports.create = async (event) => {
-  const body = JSON.parse(event.body || "{}");
-  if (!body.name) {
-    return { statusCode: 400, body: JSON.stringify({ error: "name required" }) };
+  try {
+    const body = JSON.parse(event.body || "{}");
+    if (!body.name) {
+      return createResponse(400, { error: "name required" });
+    }
+    const item = { id: uuidv4(), ...body };
+    await db.put({ TableName: TABLE, Item: item }).promise();
+    return createResponse(201, item);
+  } catch (error) {
+    console.error('Create error:', error);
+    return createResponse(500, { error: "Internal server error" });
   }
-  const item = { id: uuidv4(), ...body };
-  await db.put({ TableName: TABLE, Item: item }).promise();
-  return { statusCode: 201, body: JSON.stringify(item) };
 };
 
 exports.list = async () => {
-  const res = await db.scan({ TableName: TABLE }).promise();
-  return { statusCode: 200, body: JSON.stringify(res.Items) };
+  try {
+    const res = await db.scan({ TableName: TABLE }).promise();
+    return createResponse(200, res.Items);
+  } catch (error) {
+    console.error('List error:', error);
+    return createResponse(500, { error: "Internal server error" });
+  }
 };
 
 exports.get = async (event) => {
-  const { id } = event.pathParameters;
-  const res = await db.get({ TableName: TABLE, Key: { id } }).promise();
-  if (!res.Item) return { statusCode: 404, body: JSON.stringify({ error: "not found" }) };
-  return { statusCode: 200, body: JSON.stringify(res.Item) };
+  try {
+    const { id } = event.pathParameters;
+    if (!id) {
+      return createResponse(400, { error: "id required in path" });
+    }
+    const res = await db.get({ TableName: TABLE, Key: { id } }).promise();
+    if (!res.Item) return createResponse(404, { error: "not found" });
+    return createResponse(200, res.Item);
+  } catch (error) {
+    console.error('Get error:', error);
+    return createResponse(500, { error: "Internal server error" });
+  }
 };
 
 exports.remove = async (event) => {
-  const { id } = event.pathParameters;
-  await db.delete({ TableName: TABLE, Key: { id } }).promise();
-  return { statusCode: 204, body: "" };
+  try {
+    const { id } = event.pathParameters;
+    if (!id) {
+      return createResponse(400, { error: "id required in path" });
+    }
+    await db.delete({ TableName: TABLE, Key: { id } }).promise();
+    return createResponse(204, "");
+  } catch (error) {
+    console.error('Delete error:', error);
+    return createResponse(500, { error: "Internal server error" });
+  }
 };
 
 exports.update = async (event) => {
-  const AWS = require("aws-sdk");
-  const db = new AWS.DynamoDB.DocumentClient();
-  const TABLE = process.env.TABLE_NAME;
-
   try {
     const id = event.pathParameters && event.pathParameters.id;
     if (!id) {
-      return { statusCode: 400, body: JSON.stringify({ error: "id required in path" }) };
+      return createResponse(400, { error: "id required in path" });
     }
 
     const body = JSON.parse(event.body || "{}");
@@ -48,7 +84,7 @@ exports.update = async (event) => {
 
     const keys = Object.keys(body);
     if (keys.length === 0) {
-      return { statusCode: 400, body: JSON.stringify({ error: "no fields to update" }) };
+      return createResponse(400, { error: "no fields to update" });
     }
 
     const ExpressionAttributeNames = {};
@@ -72,14 +108,19 @@ exports.update = async (event) => {
     };
 
     const result = await db.update(params).promise();
-    return { statusCode: 200, body: JSON.stringify(result.Attributes) };
+    return createResponse(200, result.Attributes);
 
   } catch (err) {
     // handle the conditional check failure (item doesn't exist)
     if (err && err.code === "ConditionalCheckFailedException") {
-      return { statusCode: 404, body: JSON.stringify({ error: "item not found" }) };
+      return createResponse(404, { error: "item not found" });
     }
     console.error("update error:", err);
-    return { statusCode: 500, body: JSON.stringify({ error: "Internal server error" }) };
+    return createResponse(500, { error: "Internal server error" });
   }
+};
+
+// OPTIONS handler for CORS preflight requests
+exports.options = async () => {
+  return createResponse(200, "");
 };
