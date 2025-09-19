@@ -44,7 +44,7 @@ exports.list = async () => {
 
 exports.get = async (event) => {
   try {
-    const { id } = event.pathParameters;
+    const { id } = event.pathParameters || {};
     if (!id) {
       return createResponse(400, { error: "id required in path" });
     }
@@ -59,7 +59,7 @@ exports.get = async (event) => {
 
 exports.remove = async (event) => {
   try {
-    const { id } = event.pathParameters;
+    const { id } = event.pathParameters || {};
     if (!id) {
       return createResponse(400, { error: "id required in path" });
     }

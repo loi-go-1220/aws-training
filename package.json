@@ -4,7 +4,14 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --runInBand",
-    "start": "sls offline"
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "start": "sls offline",
+    "deploy:dev": "sls deploy --stage dev",
+    "deploy:prod": "sls deploy --stage prod",
+    "remove:dev": "sls remove --stage dev",
+    "remove:prod": "sls remove --stage prod"
   },
   "keywords": [],
   "author": "",
