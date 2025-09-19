@@ -3,7 +3,7 @@ frameworkVersion: "3"
 
 provider:
   name: aws
-  runtime: nodejs22.x
+  runtime: nodejs20.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-east-1'}
   environment:
@@ -19,14 +19,8 @@ provider:
       Resource:
         - arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.TABLE_NAME}
   apiGateway:
-    restApiId: ${self:custom.restApiId, ''}
-    restApiRootResourceId: ${self:custom.restApiRootResourceId, ''}
     binaryMediaTypes:
       - '*/*'
-
-custom:
-  restApiId: ${self:custom.restApiId, ''}
-  restApiRootResourceId: ${self:custom.restApiRootResourceId, ''}
 
 functions:
   create:
@@ -109,7 +103,7 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         ResponseType: DEFAULT_4XX
         RestApiId:
-          Ref: RestApiApigw
+          Ref: ApiGatewayRestApi
 
     GatewayResponseDefault5XX:
       Type: AWS::ApiGateway::GatewayResponse
@@ -119,19 +113,19 @@ resources:
           gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         ResponseType: DEFAULT_5XX
         RestApiId:
-          Ref: RestApiApigw
+          Ref: ApiGatewayRestApi
 
   Outputs:
     RestApiId:
       Value:
-        Ref: RestApiApigw
+        Ref: ApiGatewayRestApi
       Export:
         Name: ${self:service}-${self:provider.stage}-restApiId
 
     RestApiRootResourceId:
       Value:
         Fn::GetAtt:
-          - RestApiApigw
+          - ApiGatewayRestApi
           - RootResourceId
       Export:
         Name: ${self:service}-${self:provider.stage}-restApiRootResourceId
@@ -141,7 +135,7 @@ resources:
         Fn::Join:
           - ''
           - - 'https://'
-            - Ref: RestApiApigw
+            - Ref: ApiGatewayRestApi
             - '.execute-api.'
             - ${aws:region}
             - '.amazonaws.com/'
